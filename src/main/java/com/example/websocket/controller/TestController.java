@@ -1,7 +1,7 @@
 package com.example.websocket.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.example.websocket.ChannelStorage;
+import com.example.websocket.handler.channel.ChannelStorage;
 import com.example.websocket.model.Group;
 import com.example.websocket.utils.SendUtil;
 import org.springframework.util.StringUtils;
@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.channels.Channels;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -27,17 +29,15 @@ public class TestController {
     @GetMapping("showList")
     public String showList() {
         Map<String, Group> groupMap = ChannelStorage.groupMap;
-        return JSON.toJSONString(groupMap);
+        Map<String, Object> map = new HashMap<>();
+        map.put("groupMap", groupMap);
+        map.put("size", ChannelStorage.channels.size());
+        return JSON.toJSONString(map);
     }
 
     @PostMapping("sendClientsMsg")
     public String sendClientMsg(String userId, String groupId, String msg) {
-        if (StringUtils.isEmpty(msg)) {
-            return "必要参数丢失";
-        }
-
         SendUtil.send(groupId, userId, msg);
-
         return "ok";
     }
 

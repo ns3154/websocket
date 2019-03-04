@@ -1,10 +1,6 @@
 package com.example.websocket.model;
 
-
-import io.netty.channel.Channel;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.util.concurrent.GlobalEventExecutor;
 
 /**
  * <pre>

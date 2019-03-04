@@ -1,6 +1,6 @@
 package com.example.websocket.utils;
 
-import com.example.websocket.ChannelStorage;
+import com.example.websocket.handler.channel.ChannelStorage;
 import com.example.websocket.model.Group;
 import com.example.websocket.model.User;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -23,7 +23,7 @@ public class SendUtil {
             sendToUser(groupId, userId, msg);
         } else if (!StringUtils.isEmpty(groupId) && StringUtils.isEmpty(userId)) {
             sendToGroup(groupId, msg);
-        } else if(StringUtils.isEmpty(groupId) && !StringUtils.isEmpty(userId)) {
+        } else if (StringUtils.isEmpty(groupId) && !StringUtils.isEmpty(userId)) {
             sendToUser(userId, msg);
         } else {
             sendAll(msg);
@@ -65,7 +65,7 @@ public class SendUtil {
     }
 
     private static void sendAll(String msg) {
-        ChannelStorage.channels.writeAndFlush(msg);
+        ChannelStorage.channels.writeAndFlush(new TextWebSocketFrame(msg));
     }
 
 

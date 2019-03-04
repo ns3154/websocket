@@ -1,25 +1,20 @@
-package com.example.websocket.channelhandler;
-
-import java.util.*;
+package com.example.websocket.handler.channel;
 
 import com.alibaba.fastjson.JSON;
-import com.example.websocket.ChannelStorage;
-import com.example.websocket.model.User;
-import com.example.websocket.constant.RequestType;
+import com.example.websocket.handler.business.BusinessHandler;
+import com.example.websocket.handler.business.HandlerContext;
+import com.example.websocket.utils.CloseUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.CharsetUtil;
-import io.netty.util.concurrent.GlobalEventExecutor;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.websocket.model.*;
-import org.springframework.util.StringUtils;
 
 /**
  * <pre>
@@ -52,7 +47,7 @@ public class FtChannelHandler extends SimpleChannelInboundHandler<WebSocketFrame
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) {
         log.info("【handlerRemoved:断开连接】====> {}", ctx.channel().id());
-        ChannelStorage.channels.remove(ctx);
+        CloseUtil.close(ctx);
     }
 
     /**
@@ -128,7 +123,6 @@ public class FtChannelHandler extends SimpleChannelInboundHandler<WebSocketFrame
         } else if (msg instanceof WebSocketFrame) {
             doHandlerWebSocketFrame(ctx, msg);
         }
-
     }
 
     /**
@@ -164,61 +158,8 @@ public class FtChannelHandler extends SimpleChannelInboundHandler<WebSocketFrame
 
         Request request = JSON.parseObject(req, Request.class);
 
-        /**
-         * 登录
-         */
-        if (RequestType.LOGIN.getValue() == request.getRequestType()) {
-            Channel channel = ctx.channel();
-            if (StringUtils.isEmpty(request.getUserId()) || StringUtils.isEmpty(request.getGroupId())) {
-                channel.writeAndFlush(new TextWebSocketFrame("必要参数丢失"));
-                return;
-            }
-            User user = new User();
-            user.setUserId(request.getUserId());
-            user.setGroupId(request.getGroupId());
-            ChannelGroup channels = user.getUserChannels();
-            if(null == channels) {
-                channels = new DefaultChannelGroup(GlobalEventExecutor
-                        .INSTANCE);
-            }
-            channels.add(channel);
-            user.setUserChannels(channels);
-
-            Group group = ChannelStorage.groupMap.get(user.getGroupId());
-
-            if (null == group) {
-                group = new Group();
-                Map<String, User> userMap = group.getUserMap();
-                if(null == userMap) {
-                    userMap = new HashMap<>();
-                }
-                userMap.put(user.getUserId(), user);
-                group.setUserMap(userMap);
-
-                ChannelGroup groupChannels = new DefaultChannelGroup(GlobalEventExecutor
-                        .INSTANCE);
-                groupChannels.add(channel);
-                group.setGroupChannels(groupChannels);
-                ChannelStorage.groupMap.put(user.getGroupId(), group);
-
-            } else {
-                Map<String, User> userMap = group.getUserMap();
-                if(null == userMap) {
-                    userMap = new HashMap<>();
-                }
-                User u = userMap.get(user.getUserId());
-                if (null == u) {
-                    u = user;
-                    userMap.put(u.getUserId(), u);
-                } else {
-                    u.getUserChannels().add(channel);
-                }
-
-                group.getGroupChannels().add(channel);
-            }
-            ChannelStorage.channels.add(channel);
-        }
-
+        BusinessHandler bhd = HandlerContext.getHandlerContext(request.getRequestType() + "");
+        bhd.handle(request, ctx);
     }
 
 

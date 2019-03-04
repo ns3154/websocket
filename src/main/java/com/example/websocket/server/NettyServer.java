@@ -1,6 +1,6 @@
 package com.example.websocket.server;
 
-import com.example.websocket.channelhandler.FtChannelHandler;
+import com.example.websocket.handler.channel.FtChannelHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -11,12 +11,16 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.ResourceLeakDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,7 +38,6 @@ public class NettyServer {
 
     @Value("${netty.server.port}")
     private int port;
-
     public int getPort() {
         return port;
     }
@@ -48,12 +51,6 @@ public class NettyServer {
     public void init(){
         /**
          * 需要开启一个新的线程来执行netty server 服务器
-         *
-         *
-         *
-         *
-         *
-         *
          */
         new Thread(() -> startServer()).start();
     }
@@ -84,29 +81,17 @@ public class NettyServer {
                             socketChannel.pipeline().addLast(new WebSocketServerProtocolHandler("ws"));
                         }
                     }).option(ChannelOption.SO_BACKLOG,1024).childOption(ChannelOption.SO_KEEPALIVE,true);
+            ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
             bootstrap.bind().sync().channel().closeFuture().sync();
             logger.info("websocket启动");
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error(" NETTYSERVER START ERROR -->{}", e);
         }finally {
             //关闭资源
             boss.shutdownGracefully();
             work.shutdownGracefully();
+            logger.warn("NETTYSERVER CLOSE");
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
